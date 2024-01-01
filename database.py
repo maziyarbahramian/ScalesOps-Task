@@ -18,9 +18,9 @@ def create_images_table():
     try:
         connection, cursor = create_connection()
         try:
-            cursor.execute("create table if not exists images( \
-                            id    serial primary key, \
-                            image bytea)")
+            cursor.execute(
+                "create table if not exists images(id serial primary key,image bytea)"
+            )
         except(Exception, psycopg2.Error) as error:
             print("Error while creating image table", error)
         finally:
