@@ -1,12 +1,15 @@
 import psycopg2
+import os
 
 
 def create_connection():
-    connection = psycopg2.connect(dbname='scalesops',
-                                  user='postgres',
-                                  password='postgres',
-                                  host='localhost',
-                                  port='5432')
+    connection = psycopg2.connect(
+        host=os.getenv('DB_HOST'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        dbname=os.getenv('DB_NAME'),
+        port=os.getenv('DB_PORT')
+    )
     cursor = connection.cursor()
     return connection, cursor
 

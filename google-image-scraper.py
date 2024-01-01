@@ -1,6 +1,5 @@
 import io
 import sys
-import fire
 import logging
 import asyncio
 import uuid
@@ -50,6 +49,7 @@ def resize_image(filename):
 async def save_to_database(filename):
     resized_image = resize_image(filename)
     database.insert_image(resized_image)
+    logging.info('Image saved to database')
 
 
 async def download_images(urls):
@@ -93,24 +93,20 @@ def clear_cache():
         logging.error("Error occurred while clearing cache.")
 
 
-def start_script(q: str, c: int):
-    """
-    download images from Google, resize it and save it to Postgresql database
-    :param str q: search query
-    :param int c: number of images to download
-    """
-    if type(c) is not int:
-        logging.error(" number of images must be an integer")
-        return
-
-    logging.info(f" Searching for {c} images of {q}")
-
-    loop = asyncio.get_event_loop()
-    urls = loop.run_until_complete(fetch_image_urls(q))
-    filenames = loop.run_until_complete(download_images(urls))
-    clear_cache()
-
-
 if __name__ == '__main__':
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-    fire.Fire(start_script)
+
+    count = int(os.getenv('COUNT', 5))
+
+    query = os.getenv('QUERY', None)
+
+    if query is None or query == '':
+        logging.error('The QUERY environment variable is not set. Please provide a valid value.')
+        sys.exit(1)
+
+    logging.info(f" Searching for {count} images of {query}")
+
+    loop = asyncio.get_event_loop()
+    urls = loop.run_until_complete(fetch_image_urls(query))
+    filenames = loop.run_until_complete(download_images(urls))
+    clear_cache()
