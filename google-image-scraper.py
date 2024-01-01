@@ -80,6 +80,19 @@ async def fetch_image_urls(q):
     return urls
 
 
+def clear_cache():
+    try:
+        folder_name = 'images'
+        files = os.listdir(folder_name)
+        for file in files:
+            file_path = os.path.join(folder_name, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        logging.info('all cached images deleted.')
+    except OSError:
+        logging.error("Error occurred while clearing cache.")
+
+
 def start_script(q: str, c: int):
     """
     download images from Google, resize it and save it to Postgresql database
@@ -95,6 +108,7 @@ def start_script(q: str, c: int):
     loop = asyncio.get_event_loop()
     urls = loop.run_until_complete(fetch_image_urls(q))
     filenames = loop.run_until_complete(download_images(urls))
+    clear_cache()
 
 
 if __name__ == '__main__':
