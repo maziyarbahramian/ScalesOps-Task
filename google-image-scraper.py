@@ -30,18 +30,39 @@ async def download_and_save(url):
                     file.flush()
                     os.fsync(file.fileno())
         logging.info(f' 1 image downloaded successfully')
+        await save_to_database(filename)
     else:  # http status code 4XX or 5XX
         logging.error(f'Download failed: status code: {request.status_code}\n{request.text}')
 
 
-async def download_images(loop, urls):
+def resize_image(filename):
+    try:
+        image = Image.open(f'images/{filename}')
+        image.thumbnail((120, 120))
+        output = io.BytesIO()
+        image.save(output, format='JPEG')
+        return output.getvalue()
+
+    except IOError as e:
+        logging.error(e)
+
+
+async def save_to_database(filename):
+    resized_image = resize_image(filename)
+    database.insert_image(resized_image)
+
+
+async def download_images(urls):
     urls_count = len(urls)
     logging.info(f' Start Downloading {urls_count} images')
+    filenames = list()
     for i in range(urls_count):
-        await download_and_save(urls[i])
+        filename = await download_and_save(urls[i])
+        filenames.append(filename)
+    return filenames
 
 
-async def fetch_image_urls(loop, q):
+async def fetch_image_urls(q):
     """
     "Due to US sanctions, my Google account is restricted,
      preventing me from obtaining an API access key.
@@ -72,8 +93,8 @@ def start_script(q: str, c: int):
     logging.info(f" Searching for {c} images of {q}")
 
     loop = asyncio.get_event_loop()
-    urls = loop.run_until_complete(fetch_image_urls(loop, q))
-    loop.run_until_complete(download_images(loop, urls))
+    urls = loop.run_until_complete(fetch_image_urls(q))
+    filenames = loop.run_until_complete(download_images(urls))
 
 
 if __name__ == '__main__':
