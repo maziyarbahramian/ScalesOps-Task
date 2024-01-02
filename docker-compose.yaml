@@ -33,7 +33,7 @@ services:
     depends_on:
       db:
         condition: "service_healthy"
-    command: sh -c "python3 google-image-scraper.py"
+    command: sh -c "python3 google_image_scraper.py"
 volumes:
   db0:
     driver: local

@@ -10,46 +10,62 @@ import database
 import base64
 
 
-async def download_and_save(url):
-    logging.info(f"Downloading {url}")
+def create_image_folder():
     folder_name = "images"
     if not os.path.exists(folder_name):
+        logging.info(f" Creating folder: {folder_name}")
         os.makedirs(folder_name)
+    logging.info(f' Folder already exists: {folder_name}')
+    return folder_name
 
+
+def get_new_file_path(folder_name):
     filename = str(uuid.uuid4()) + ".jpg"
     file_path = os.path.join(folder_name, filename)
+    logging.info(f' File will be downloaded in: {file_path}')
+    return file_path, filename
+
+
+async def download_and_save(url):
+    logging.info(f"Downloading {url}")
+
+    folder_name = create_image_folder()
+    file_path, filename = get_new_file_path(folder_name)
 
     request = requests.get(url, stream=True, proxies={'http': '', 'https': ''})
     if request.ok:
-        logging.info(f'image downloaded, saving to {os.path.abspath(file_path)}')
+        logging.info(f' Image downloaded, saving to {os.path.abspath(file_path)}')
         with open(file_path, 'wb') as file:
             for chunk in request.iter_content(chunk_size=1024 * 8):
                 if chunk:
                     file.write(chunk)
                     file.flush()
                     os.fsync(file.fileno())
-        logging.info(f' 1 image downloaded successfully')
-        await save_to_database(filename)
+        logging.info(f' Image successfully saved in: {os.path.abspath(file_path)}')
+        await save_to_database(file_path)
     else:  # http status code 4XX or 5XX
-        logging.error(f'Download failed: status code: {request.status_code}\n{request.text}')
+        logging.error(f'Download failed: {url}\n Status code: {request.status_code}\n{request.text}')
 
 
-def resize_image(filename):
+def resize_image(file_path):
     try:
-        image = Image.open(f'images/{filename}')
+        logging.info(f" Resizing {file_path}")
+        image = Image.open(file_path)
         image.thumbnail((120, 120))
         output = io.BytesIO()
         image.save(output, format='JPEG')
+        logging.info(f' Image {file_path} Successfully resized to 120*120')
         return output.getvalue()
 
     except IOError as e:
         logging.error(e)
 
 
-async def save_to_database(filename):
-    resized_image = resize_image(filename)
+async def save_to_database(file_path):
+    logging.info(f" Start Saving {file_path} to database")
+    resized_image = resize_image(file_path)
     database.insert_image(resized_image)
-    logging.info('Image saved to database')
+    logging.info(f' Image {file_path} saved to database')
 
 
 async def download_images(urls):
